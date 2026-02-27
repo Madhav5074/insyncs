@@ -72,7 +72,7 @@ export default function DashboardPage() {
               </p>
             </div>
           ) : (
-            circles.map((circle) => (
+                        circles.map((circle) => (
               <div
                 key={circle.id}
                 onClick={() => router.push(`/circle/${circle.id}`)}
@@ -83,8 +83,18 @@ export default function DashboardPage() {
                     {circle.name ? circle.name.charAt(0).toUpperCase() : "#"}
                   </div>
                   <div>
-                    <h2 className="font-semibold text-lg">{circle.name}</h2>
-                    <p className="text-sm text-zinc-500">Tap to view</p>
+                    <h2 className="font-semibold text-lg flex items-center gap-2">
+                      {circle.name}
+                      {/* NEW: Show a pending badge if there is only 1 member! */}
+                      {circle.members?.length < 2 && (
+                        <span className="text-[10px] bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
+                          Waiting
+                        </span>
+                      )}
+                    </h2>
+                    <p className="text-sm text-zinc-500">
+                      {circle.members?.length < 2 ? "Needs a partner" : "Tap to view"}
+                    </p>
                   </div>
                 </div>
                 
@@ -92,6 +102,8 @@ export default function DashboardPage() {
                   ➔
                 </span>
               </div>
+            ))
+
             ))
           )}
         </div>
