@@ -1,3 +1,38 @@
+  useEffect(() => {
+    let unsubscribeSnapshot: () => void;
+
+    const unsubscribeAuth = auth.onAuthStateChanged((user) => {
+      if (!user) {
+        router.push("/auth");
+        return;
+      }
+
+      try {
+        const q = query(
+          collection(db, "circles"),
+          where("members", "array-contains", user.uid)
+        );
+
+        // ✨ UPGRADE: Swapped getDocs for onSnapshot for a live multiplayer dashboard!
+        unsubscribeSnapshot = onSnapshot(q, (snap) => {
+          setCircles(
+            snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+          );
+          setIsLoading(false);
+        });
+      } catch (error) {
+        console.error("Failed to fetch circles", error);
+        setIsLoading(false);
+      }
+    });
+
+    // Cleanup both the auth listener and the database listener when leaving the page
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeSnapshot) unsubscribeSnapshot();
+    };
+  }, [router]);
+
 "use client";
 
 import { useEffect, useState } from "react";
