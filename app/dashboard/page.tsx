@@ -57,12 +57,24 @@ export default function DashboardPage() {
         {/* Content Section */}
         <div className="space-y-4">
           {isLoading ? (
-            <>
-              {[1, 2, 3].map((skeleton) => (
-                <div key={skeleton} className="h-20 w-full rounded-2xl bg-zinc-200 dark:bg-zinc-800/50 animate-pulse" />
-              ))}
-            </>
+            
+            /* ✨ NEW: Premium "Syncing" Animation ✨ */
+            <div className="flex flex-col items-center justify-center h-[50vh] space-y-6 animate-[fadeIn_0.3s_ease-out]">
+              <div className="relative w-16 h-16 flex items-center justify-center">
+                {/* Outer spinning ring */}
+                <div className="absolute inset-0 rounded-full border-t-2 border-zinc-900 dark:border-white animate-[spin_1s_linear_infinite]"></div>
+                {/* Inner counter-spinning ring */}
+                <div className="absolute inset-2 rounded-full border-b-2 border-zinc-400 dark:border-zinc-500 animate-[spin_1.5s_linear_infinite_reverse]"></div>
+                {/* Center pulsing dot */}
+                <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-pulse"></div>
+              </div>
+              <p className="text-xs font-bold text-zinc-500 tracking-[0.2em] uppercase animate-pulse">
+                Syncing
+              </p>
+            </div>
+
           ) : circles.length === 0 ? (
+            
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-3xl">
               <div className="text-4xl mb-3">✨</div>
               <h3 className="text-lg font-medium">No circles yet</h3>
@@ -70,7 +82,9 @@ export default function DashboardPage() {
                 Create your first circle to start syncing up with your friends.
               </p>
             </div>
+            
           ) : (
+            
             circles.map((circle) => (
               <div
                 key={circle.id}
@@ -84,7 +98,6 @@ export default function DashboardPage() {
                   <div>
                     <h2 className="font-semibold text-lg flex items-center gap-2">
                       {circle.name}
-                      {/* Show a pending badge if there is only 1 member! */}
                       {circle.members?.length < 2 && (
                         <span className="text-[10px] bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
                           Waiting
@@ -96,7 +109,6 @@ export default function DashboardPage() {
                     </p>
                   </div>
                 </div>
-                
                 <span className="text-zinc-400 group-hover:translate-x-1 transition-transform">
                   ➔
                 </span>
@@ -106,17 +118,19 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* FIXED FLOATING ACTION BUTTON */}
-      <div className="fixed bottom-8 left-0 right-0 px-6 flex justify-center z-50 pointer-events-none">
-        <div className="w-full max-w-md pointer-events-auto">
-          <button
-            onClick={() => router.push("/create")}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-black py-4 text-white font-medium shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-200 hover:bg-zinc-800 hover:-translate-y-1 hover:shadow-[0_8px_40px_rgb(0,0,0,0.2)] active:scale-95 active:translate-y-0 dark:bg-white dark:text-black dark:shadow-[0_8px_30px_rgba(255,255,255,0.15)] dark:hover:bg-zinc-200"
-          >
-            <span className="text-xl leading-none -mt-1">+</span> Create New Circle
-          </button>
+      {/* Floating Action Button */}
+      {!isLoading && (
+        <div className="fixed bottom-8 left-0 right-0 px-6 flex justify-center z-50 pointer-events-none animate-[fadeIn_0.5s_ease-out_0.2s_both]">
+          <div className="w-full max-w-md pointer-events-auto">
+            <button
+              onClick={() => router.push("/create")}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-black py-4 text-white font-medium shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-200 hover:bg-zinc-800 hover:-translate-y-1 hover:shadow-[0_8px_40px_rgb(0,0,0,0.2)] active:scale-95 active:translate-y-0 dark:bg-white dark:text-black dark:shadow-[0_8px_30px_rgba(255,255,255,0.15)] dark:hover:bg-zinc-200"
+            >
+              <span className="text-xl leading-none -mt-1">+</span> Create New Circle
+            </button>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
