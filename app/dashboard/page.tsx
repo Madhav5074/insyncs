@@ -8,6 +8,10 @@ import { useRouter } from "next/navigation";
 export default function DashboardPage() {
   const [circles, setCircles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // ✨ NEW: Tracks exactly which circle the user just tapped
+  const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
+  
   const router = useRouter();
 
   useEffect(() => {
@@ -37,6 +41,11 @@ export default function DashboardPage() {
     return () => unsubscribe();
   }, [router]);
 
+  // Reset the navigation state if they come back to this page
+  useEffect(() => {
+    setNavigatingTo(null);
+  }, []);
+
   return (
     <div className="min-h-screen p-6 pb-32 bg-zinc-50 dark:bg-black text-black dark:text-white selection:bg-zinc-300 dark:selection:bg-zinc-700">
       <div className="max-w-md mx-auto space-y-8 animate-[fadeIn_0.5s_ease-out]">
@@ -58,14 +67,10 @@ export default function DashboardPage() {
         <div className="space-y-4">
           {isLoading ? (
             
-            /* ✨ NEW: Premium "Syncing" Animation ✨ */
             <div className="flex flex-col items-center justify-center h-[50vh] space-y-6 animate-[fadeIn_0.3s_ease-out]">
               <div className="relative w-16 h-16 flex items-center justify-center">
-                {/* Outer spinning ring */}
                 <div className="absolute inset-0 rounded-full border-t-2 border-zinc-900 dark:border-white animate-[spin_1s_linear_infinite]"></div>
-                {/* Inner counter-spinning ring */}
                 <div className="absolute inset-2 rounded-full border-b-2 border-zinc-400 dark:border-zinc-500 animate-[spin_1.5s_linear_infinite_reverse]"></div>
-                {/* Center pulsing dot */}
                 <div className="w-2 h-2 bg-black dark:bg-white rounded-full animate-pulse"></div>
               </div>
               <p className="text-xs font-bold text-zinc-500 tracking-[0.2em] uppercase animate-pulse">
@@ -85,35 +90,56 @@ export default function DashboardPage() {
             
           ) : (
             
-            circles.map((circle) => (
-              <div
-                key={circle.id}
-                onClick={() => router.push(`/circle/${circle.id}`)}
-                className="group relative flex items-center justify-between p-5 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm cursor-pointer transition-all duration-200 active:scale-[0.98]"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 flex items-center justify-center rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-lg">
-                    {circle.name ? circle.name.charAt(0).toUpperCase() : "#"}
+            circles.map((circle) => {
+              const isNavigatingHere = navigatingTo === circle.id;
+              
+              return (
+                <div
+                  key={circle.id}
+                  onClick={() => {
+                    // Instantly trigger the loading state on this specific card
+                    setNavigatingTo(circle.id);
+                    router.push(`/circle/${circle.id}`);
+                  }}
+                  // If navigating here, lock the card in a "pressed down" and slightly faded state
+                  className={`group relative flex items-center justify-between p-5 rounded-2xl border transition-all duration-200 ${
+                    isNavigatingHere 
+                      ? "border-zinc-300 bg-zinc-100 scale-[0.98] opacity-80 dark:border-zinc-700 dark:bg-zinc-900" 
+                      : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-sm cursor-pointer active:scale-[0.98]"
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 flex items-center justify-center rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-lg">
+                      {circle.name ? circle.name.charAt(0).toUpperCase() : "#"}
+                    </div>
+                    <div>
+                      <h2 className="font-semibold text-lg flex items-center gap-2">
+                        {circle.name}
+                        {circle.members?.length < 2 && (
+                          <span className="text-[10px] bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
+                            Waiting
+                          </span>
+                        )}
+                      </h2>
+                      <p className="text-sm text-zinc-500">
+                        {isNavigatingHere 
+                          ? "Loading circle..." 
+                          : circle.members?.length < 2 ? "Needs a partner" : "Tap to view"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="font-semibold text-lg flex items-center gap-2">
-                      {circle.name}
-                      {circle.members?.length < 2 && (
-                        <span className="text-[10px] bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
-                          Waiting
-                        </span>
-                      )}
-                    </h2>
-                    <p className="text-sm text-zinc-500">
-                      {circle.members?.length < 2 ? "Needs a partner" : "Tap to view"}
-                    </p>
-                  </div>
+                  
+                  {/* Swap the arrow for a smooth spinner when tapped */}
+                  {isNavigatingHere ? (
+                    <div className="w-5 h-5 border-2 border-zinc-200 border-t-black rounded-full animate-spin dark:border-zinc-700 dark:border-t-white"></div>
+                  ) : (
+                    <span className="text-zinc-400 group-hover:translate-x-1 transition-transform">
+                      ➔
+                    </span>
+                  )}
                 </div>
-                <span className="text-zinc-400 group-hover:translate-x-1 transition-transform">
-                  ➔
-                </span>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
