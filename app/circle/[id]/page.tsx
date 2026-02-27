@@ -63,7 +63,8 @@ export default function CirclePage() {
       if (id) {
         // This listens to BOTH you and your partner. If they check in, it updates instantly!
         const unsubscribeMembers = onSnapshot(collection(db, "circles", id, "members"), (snap) => {
-          const membersData = snap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+          const membersData = snap.docs.map(doc => ({ uid: doc.id, ...(doc.data() as any) }));
+
           
           // Find MY stats
           const me = membersData.find(m => m.uid === user.uid);
