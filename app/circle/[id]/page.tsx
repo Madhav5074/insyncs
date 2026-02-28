@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { doc, onSnapshot, collection, setDoc } from "firebase/firestore";
 import { db, auth } from "../../lib/firebase"; 
 
-import GymTracker from "../../components/habits/GymTracker";
+// 🎯 The "Holy Trinity" of our clean architecture
+import HabitRouter from "../../components/habits/HabitRouter";
 import SquadLeaderboard from "../../components/SquadLeaderboard"; 
-import WaitingRoom from "../../components/waitingRoom"; // 👈 Fixed: Lowercase 'w' to match your file!
+import WaitingRoom from "../../components/waitingRoom"; 
 
 export default function CirclePage() {
   const params = useParams();
@@ -17,6 +18,9 @@ export default function CirclePage() {
   const [circle, setCircle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [members, setMembers] = useState<any[]>([]);
+  
+  // We keep this one state for the tiny "Copy Invite" button on the active page
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const todayKey = new Date().toISOString().split("T")[0];
 
@@ -46,6 +50,12 @@ export default function CirclePage() {
 
     return () => { unsubscribeCircle(); unsubscribeAuth(); };
   }, [id, router]);
+
+  function copyInviteLink() {
+    navigator.clipboard.writeText(`${typeof window !== 'undefined' ? window.location.origin : ''}/join/${id}`);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }
 
   async function standardCheckIn() {
     const user = auth.currentUser;
@@ -94,7 +104,7 @@ export default function CirclePage() {
     <div className="min-h-screen bg-zinc-50 px-6 py-10 text-black dark:bg-black dark:text-white pb-28">
       <div className="mx-auto max-w-md space-y-8 animate-[fadeIn_0.5s_ease-out]">
         
-        {/* Header */}
+        {/* 1. The Header */}
         <div className="relative flex items-center justify-center pt-2 h-14 mb-4">
           <button
             onClick={() => router.push("/dashboard")}
@@ -108,39 +118,38 @@ export default function CirclePage() {
         </div>
 
         {isWaitingForSquad ? (
+          /* 2. The Waiting Room (Isolated) */
           <WaitingRoom id={id} />
         ) : (
           <div className="space-y-8">
             <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-4">
+              
+              {/* Habit Info & Invite Button */}
               <div className="flex justify-between items-center mb-2">
                  <div>
                     <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">{circle.habit}</p>
                     <p className="text-sm font-medium text-zinc-400">{circle.durationDays} Day Cycle</p>
                  </div>
+                 <button onClick={copyInviteLink} className="text-xs font-bold bg-zinc-100 dark:bg-zinc-900 px-3 py-1.5 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors">
+                    {linkCopied ? "Copied! ✓" : "Copy Invite"}
+                 </button>
               </div>
 
-              {circle.habit === "Gym" ? (
-                <GymTracker circle={circle} me={me} circleId={id} todayKey={todayKey} />
-              ) : (
-                <div className="pt-2">
-                  <button
-                    onClick={standardCheckIn}
-                    disabled={checkedInToday}
-                    className={`w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-all duration-200 active:scale-95 ${
-                      checkedInToday 
-                        ? "bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed" 
-                        : "bg-black text-white dark:bg-white dark:text-black shadow-md hover:-translate-y-1"
-                    }`}
-                  >
-                    {checkedInToday ? "✓ Checked in Today" : "Check In Now"}
-                  </button>
-                </div>
-              )}
+              {/* 3. The Switchboard (Isolated) */}
+              <HabitRouter 
+                circle={circle} 
+                me={me} 
+                circleId={id} 
+                todayKey={todayKey} 
+                checkedInToday={checkedInToday} 
+                standardCheckIn={standardCheckIn} 
+              />
             </div>
 
-            {/* 🎯 The Clean Leaderboard */}
+            {/* 4. The Leaderboard (Isolated) */}
             <SquadLeaderboard members={members} circle={circle} todayKey={todayKey} />
 
+            {/* 5. The Footer */}
             <div className="space-y-4 pt-10 pb-6 opacity-70">
                 <blockquote className="text-lg font-medium italic text-zinc-700 dark:text-zinc-300 text-center px-4">
                   "You do not rise to the level of your goals. You fall to the level of your systems."
