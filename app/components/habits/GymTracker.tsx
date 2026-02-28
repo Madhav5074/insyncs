@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { doc, setDoc } from "firebase/firestore";
-import { auth, db } from "../../lib/firebase"; // Adjust if your lib is elsewhere
+import { auth, db } from "../../lib/firebase"; 
 
 export default function GymTracker({ circle, me, circleId, todayKey }: any) {
   const [isLocating, setIsLocating] = useState(false);
@@ -97,6 +97,7 @@ export default function GymTracker({ circle, me, circleId, todayKey }: any) {
   }
 
   async function endWorkout() {
+    if (!me?.workoutStartTime) return;
     const durationMinutes = Math.round((Date.now() - me.workoutStartTime) / 60000);
     let newStreak = (me.lastCheckin === getYesterday() ? (me.streak || 0) + 1 : 1);
     let newCycleDay = (me.cycleDay || 0) + 1;
@@ -119,7 +120,6 @@ export default function GymTracker({ circle, me, circleId, todayKey }: any) {
 
   return (
     <div className="w-full space-y-4">
-      {/* Target Gym Coordinates Block */}
       <div className="w-full p-4 bg-zinc-50 dark:bg-zinc-900/50 rounded-2xl border border-zinc-200 dark:border-zinc-800 space-y-4">
         <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
@@ -149,7 +149,8 @@ export default function GymTracker({ circle, me, circleId, todayKey }: any) {
 
         {hasLockedLocation && (
           <a 
-            href={`http://googleusercontent.com/maps.google.com/maps?q=${me.lockedLocation.lat},${me.lockedLocation.lng}`}
+            // FIXED URL FORMAT HERE
+            href={`https://www.google.com/maps?q=${me.lockedLocation.lat},${me.lockedLocation.lng}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[10px] font-bold uppercase tracking-wider text-blue-500 hover:text-blue-600 dark:text-blue-400 transition-colors flex items-center justify-center gap-1.5"
@@ -179,7 +180,6 @@ export default function GymTracker({ circle, me, circleId, todayKey }: any) {
         </div>
       )}
       
-      {/* Main Action Area */}
       <div className="pt-2">
         {currentState === 'completed' ? (
           <div className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold bg-zinc-100 text-green-600 dark:bg-zinc-900 dark:text-green-400 border border-green-200 dark:border-green-900/50">
