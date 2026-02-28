@@ -81,7 +81,8 @@ export default function JoinPage() {
 
      // 2. Initialize their personal stats document in the subcollection
       await setDoc(doc(db, "circles", id, "members", currentUser.uid), {
-        email: currentUser.email, // <--- THIS IS THE MAGIC LINE
+        email: currentUser.email,
+        name: currentUser.displayName || "", // ✨ NOW IT SAVES THEIR ACTUAL NAME
         streak: 0,
         cycleDay: 0,
         completedCycles: 0,
