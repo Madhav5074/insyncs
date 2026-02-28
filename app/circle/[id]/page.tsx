@@ -17,7 +17,6 @@ export default function CirclePage() {
 
   const [circle, setCircle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [codeCopied, setCodeCopied] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
 
