@@ -3,13 +3,14 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
-import { db, auth } from "../../../../../lib/firebase"; // 5 dots deep!
+// ✨ FIXED: Exactly 4 levels up! 
+import { db, auth } from "../../../../lib/firebase"; 
 
 export default function MemberProfilePage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const memberId = params.memberId as string; // The specific person we clicked
+  const memberId = params.memberId as string; 
 
   const [loading, setLoading] = useState(true);
   const [circle, setCircle] = useState<any>(null);
@@ -24,7 +25,6 @@ export default function MemberProfilePage() {
         if (circleSnap.exists()) setCircle(circleSnap.data());
         else router.push("/dashboard");
 
-        // Fetch exactly the member we clicked on
         const unsubscribeMember = onSnapshot(doc(db, "circles", id, "members", memberId), (snap) => {
           if (snap.exists()) {
              setMemberStats(snap.data());
