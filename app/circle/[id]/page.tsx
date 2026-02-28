@@ -24,7 +24,6 @@ export default function CirclePage() {
     return d.toISOString().split("T")[0];
   }
 
-  // 1. Live Circle Details
   useEffect(() => {
     if (!id) return;
     const unsubscribe = onSnapshot(doc(db, "circles", id), (snap) => {
@@ -34,7 +33,6 @@ export default function CirclePage() {
     return () => unsubscribe();
   }, [id, router]);
 
-  // 2. Live Squad Leaderboard
   useEffect(() => {
     const unsubscribeAuth = auth.onAuthStateChanged((user) => {
       if (!user || !id) return;
@@ -42,12 +40,11 @@ export default function CirclePage() {
       const unsubscribeMembers = onSnapshot(collection(db, "circles", id, "members"), (snap) => {
         const membersData = snap.docs.map(doc => ({ uid: doc.id, ...(doc.data() as any) }));
         
-        // Sort members so the ones with the highest streak are at the top!
+        // Sort by highest streak
         membersData.sort((a, b) => (b.streak || 0) - (a.streak || 0));
         
         setMembers(membersData);
         
-        // Check if current user checked in today
         const me = membersData.find(m => m.uid === user.uid);
         if (me) setCheckedInToday(me.lastCheckin === todayKey);
         
@@ -82,7 +79,6 @@ export default function CirclePage() {
       }
     }
 
-    // ✨ IMPORTANT: We merge { merge: true } so we don't accidentally overwrite their email/name!
     await setDoc(memberRef, {
       streak: newStreak,
       lastCheckin: todayKey,
@@ -111,7 +107,6 @@ export default function CirclePage() {
     <div className="min-h-screen bg-zinc-50 dark:bg-black px-6 py-10 text-black dark:text-white pb-28">
       <div className="mx-auto max-w-md space-y-8 animate-[fadeIn_0.5s_ease-out]">
         
-        {/* Header */}
         <div className="relative flex items-center justify-center pt-2 h-14 mb-4">
           <button
             onClick={() => router.push("/dashboard")}
@@ -124,7 +119,6 @@ export default function CirclePage() {
           </h1>
         </div>
 
-        {/* My Action Card */}
         <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
              <div>
@@ -152,7 +146,6 @@ export default function CirclePage() {
           </button>
         </div>
 
-        {/* 🏆 SQUAD LEADERBOARD */}
         <div className="space-y-4 pt-4">
           <div className="flex items-center justify-between ml-1">
             <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500">Squad Progress</h3>
@@ -168,7 +161,6 @@ export default function CirclePage() {
               return (
                 <div 
                   key={member.uid}
-                  // Clicking anywhere on their card takes you to their specific profile!
                   onClick={() => router.push(`/circle/${id}/member/${member.uid}`)}
                   className="group cursor-pointer bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-5 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all active:scale-[0.98]"
                 >
@@ -191,7 +183,6 @@ export default function CirclePage() {
                     </div>
                   </div>
                   
-                  {/* The Progress Bar */}
                   <div className="h-2.5 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
                     <div 
                       className="h-full bg-black dark:bg-white rounded-full transition-all duration-1000 ease-out"
@@ -207,5 +198,4 @@ export default function CirclePage() {
       </div>
     </div>
   );
-}
 }
