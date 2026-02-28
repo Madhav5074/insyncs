@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, onSnapshot, collection, setDoc, getDoc } from "firebase/firestore";
+import { doc, onSnapshot, collection, setDoc } from "firebase/firestore";
 import { db, auth } from "../../lib/firebase"; 
 import PageTransition from "../../components/PageTransition";
 
@@ -53,9 +53,9 @@ export default function CirclePage() {
     setTimeout(() => setLinkCopied(false), 2000);
   }
 
-  // Fallback Check-in for Non-Gym Habits (Until we build them)
   async function standardCheckIn() {
     const user = auth.currentUser;
+    const me = members.find(m => m.uid === user?.uid);
     if (!user || !me) return;
     
     let newStreak = 1, newCycleDay = (me.cycleDay || 0) + 1, newCompletedCycles = me.completedCycles || 0;
@@ -95,7 +95,6 @@ export default function CirclePage() {
       <div className="min-h-screen bg-zinc-50 px-6 py-10 text-black dark:bg-black dark:text-white pb-28">
         <div className="mx-auto max-w-md space-y-8 animate-[fadeIn_0.5s_ease-out]">
           
-          {/* Header */}
           <div className="relative flex items-center justify-center pt-2 h-14 mb-4">
             <button
               onClick={() => router.push("/dashboard")}
@@ -109,8 +108,6 @@ export default function CirclePage() {
           </div>
 
           {isWaitingForSquad ? (
-            
-            // WAITING ROOM UI
             <div className="flex flex-col items-center justify-center py-8 space-y-8 bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm mt-4">
               <div className="relative flex items-center justify-center w-24 h-24">
                 <div className="absolute inset-0 rounded-full border-4 border-black/10 dark:border-white/10 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
@@ -120,9 +117,7 @@ export default function CirclePage() {
               </div>
               <div className="text-center space-y-2">
                 <h2 className="text-xl font-bold">Waiting for squad...</h2>
-                <p className="text-zinc-500 dark:text-zinc-400 text-sm">
-                  Share the code or link below.
-                </p>
+                <p className="text-zinc-500 dark:text-zinc-400 text-sm">Share the code or link below.</p>
               </div>
               <div className="w-full space-y-3">
                 <div className="w-full p-4 bg-zinc-100 dark:bg-zinc-900 rounded-2xl flex items-center justify-between shadow-inner">
@@ -150,14 +145,9 @@ export default function CirclePage() {
                 </div>
               </div>
             </div>
-
           ) : (
-
             <div className="space-y-8 animate-[fadeIn_0.5s_ease-out]">
-              
-              {/* HABIT DASHBOARD UI */}
               <div className="bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-zinc-800 rounded-3xl p-6 shadow-sm space-y-4">
-                
                 <div className="flex justify-between items-center mb-2">
                    <div>
                       <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">{circle.habit}</p>
@@ -168,11 +158,9 @@ export default function CirclePage() {
                    </button>
                 </div>
 
-                {/* ✨ DYNAMIC HABIT COMPONENT INJECTION */}
                 {circle.habit === "Gym" ? (
                   <GymTracker circle={circle} me={me} circleId={id} todayKey={todayKey} />
                 ) : (
-                  // Generic Check-In Fallback
                   <div className="pt-2">
                     <button
                       onClick={standardCheckIn}
@@ -189,7 +177,6 @@ export default function CirclePage() {
                 )}
               </div>
 
-              {/* ✨ RESTORED SQUAD LEADERBOARD */}
               <div className="space-y-4 pt-4">
                 <div className="flex items-center justify-between ml-1">
                   <h3 className="text-sm font-bold uppercase tracking-widest text-zinc-500">Squad Progress</h3>
@@ -227,30 +214,25 @@ export default function CirclePage() {
                                 <div className="mt-1 flex items-center gap-2">
                                   {circle.habit === "Gym" ? (
                                     isWorkingOut ? (
-                                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 animate-pulse">
-                                        ⏱️ At the Gym
-                                      </span>
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-blue-500 animate-pulse">⏱️ At the Gym</span>
                                     ) : isCompletedToday ? (
-                                      <span className="text-[10px] font-bold uppercase tracking-wider text-green-600 dark:text-green-400">
-                                        ✓ {member.todayDuration} Min Workout
-                                      </span>
+                                      <span className="text-[10px] font-bold uppercase tracking-wider text-green-600 dark:text-green-400">✓ {member.todayDuration} Min Workout</span>
                                     ) : (
                                       <>
                                         <p className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
                                           {hasLocked ? <span className="text-zinc-500">Location Locked</span> : <span className="text-orange-500">⚠ Setup Pending</span>}
                                         </p>
                                         {hasLocked && !isMe && (
-<a 
-  href={`https://www.google.com/maps?q=${member.lockedLocation.lat},${member.lockedLocation.lng}`}
-  target="_blank"
-  rel="noopener noreferrer"
-  onClick={(e) => e.stopPropagation()} 
-  className="text-[10px] font-bold uppercase tracking-wider text-blue-500"
->
-  (Map 🗺️)
-</a>
-
-
+                                          <a 
+                                            href={`https://www.google.com/maps?q=${member.lockedLocation.lat},${member.lockedLocation.lng}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()} 
+                                            className="text-[10px] font-bold uppercase tracking-wider text-blue-500"
+                                          >
+                                            (Map 🗺️)
+                                          </a>
+                                        )}
                                       </>
                                     )
                                   ) : (
@@ -259,15 +241,12 @@ export default function CirclePage() {
                                     </span>
                                   )}
                                 </div>
-
                              </div>
                           </div>
                           <div className="text-right">
                              <p className="font-bold text-sm">{member.cycleDay || 0} <span className="text-zinc-400 font-normal">/ {circle.durationDays}</span></p>
                           </div>
                         </div>
-                        
-                        {/* THE PROGRESS BAR */}
                         <div className="h-2.5 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden mt-2">
                           <div 
                             className="h-full bg-black dark:bg-white rounded-full transition-all duration-1000 ease-out"
@@ -280,19 +259,14 @@ export default function CirclePage() {
                 </div>
               </div>
 
-              {/* Footer Quote */}
               <div className="space-y-4 pt-10 pb-6 opacity-70">
                   <blockquote className="text-lg font-medium italic text-zinc-700 dark:text-zinc-300 text-center px-4">
                     "You do not rise to the level of your goals. You fall to the level of your systems."
                   </blockquote>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center uppercase tracking-widest font-bold">
-                    — James Clear
-                  </p>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 text-center uppercase tracking-widest font-bold">— James Clear</p>
               </div>
-
             </div>
           )}
-
         </div>
       </div>
     </PageTransition>
