@@ -79,13 +79,15 @@ export default function JoinPage() {
         members: arrayUnion(currentUser.uid),
       });
 
-      // 2. Initialize their personal stats document in the subcollection
+     // 2. Initialize their personal stats document in the subcollection
       await setDoc(doc(db, "circles", id, "members", currentUser.uid), {
+        email: currentUser.email, // <--- THIS IS THE MAGIC LINE
         streak: 0,
         cycleDay: 0,
         completedCycles: 0,
         lastCheckin: "",
       });
+
 
       // 3. Zoom them directly into the active circle!
       router.push(`/circle/${id}`);
