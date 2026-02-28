@@ -84,12 +84,14 @@ export default function JoinPage() {
 
       // Initialize their personal stats document 
       await setDoc(doc(db, "circles", id, "members", currentUser.uid), {
-        email: currentUser.email, // Saves their email for the leaderboard!
+        email: currentUser.email, 
+        name: currentUser.displayName, // ✨ NEW: Pulls their real name from their profile!
         streak: 0,
         cycleDay: 0,
         completedCycles: 0,
         lastCheckin: "",
       });
+
 
       // Zoom them directly into the active circle!
       router.push(`/circle/${id}`);
