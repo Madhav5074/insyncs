@@ -57,9 +57,10 @@ export default function CreateCirclePage() {
         createdAt: serverTimestamp(),
       });
 
-      // 2. Initialize your own personal stats document inside the circle with your email!
+      // 2. Initialize your own personal stats document inside the circle!
       await setDoc(doc(db, "circles", docRef.id, "members", user.uid), {
         email: user.email,
+        name: user.displayName || name, // ✨ NOW IT SAVES THEIR ACTUAL NAME
         streak: 0,
         cycleDay: 0,
         completedCycles: 0,
