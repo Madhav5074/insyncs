@@ -18,7 +18,8 @@ export default function CreateCirclePage() {
   const [duration, setDuration] = useState(21);
   
   const [circleId, setCircleId] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     if (step === 2 && circleId) {
@@ -76,11 +77,11 @@ export default function CreateCirclePage() {
   }
 
   function copyInviteLink() {
-    const inviteUrl = `${window.location.origin}/join/${circleId}`;
-    navigator.clipboard.writeText(inviteUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
+  const inviteUrl = `${window.location.origin}/join/${circleId}`;
+  navigator.clipboard.writeText(inviteUrl);
+  setLinkCopied(true); // ✨ NEW: Uses link-specific state
+  setTimeout(() => setLinkCopied(false), 2000);
+ }
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-black px-6 py-10 text-black dark:text-white selection:bg-zinc-300 dark:selection:bg-zinc-700">
@@ -180,6 +181,7 @@ export default function CreateCirclePage() {
             </div>
 
             <div className="w-full space-y-3">
+              {/* ✨ The Secret Code Block */}
               <div className="w-full p-4 bg-zinc-100 dark:bg-zinc-900 rounded-2xl flex items-center justify-between shadow-inner">
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Join Code</span>
@@ -188,15 +190,18 @@ export default function CreateCirclePage() {
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(circleId);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
+                    // ✨ FIXED: Now sets code-specific state
+                    setCodeCopied(true); 
+                    setTimeout(() => setCodeCopied(false), 2000);
                   }}
                   className="px-4 py-2 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm hover:scale-105 active:scale-95 transition-all"
                 >
-                  {copied ? "Copied ✓" : "Copy Code"}
+                  {/* ✨ FIXED: Looks at code-specific state */}
+                  {codeCopied ? "Copied ✓" : "Copy Code"}
                 </button>
               </div>
 
+              {/* The Original Link Block */}
               <div className="w-full p-1 bg-zinc-100 dark:bg-zinc-900 rounded-2xl flex items-center shadow-inner">
                 <div className="flex-1 px-4 py-3 text-xs font-mono truncate text-zinc-500">
                   {`${window.location.origin}/join/${circleId}`}
@@ -205,14 +210,8 @@ export default function CreateCirclePage() {
                   onClick={copyInviteLink}
                   className="px-5 py-3 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-xl text-sm font-semibold shadow-sm hover:scale-105 active:scale-95 transition-all"
                 >
-                  {copied ? "Copied ✓" : "Copy Link"}
+                  {/* ✨ FIXED: Looks at link-specific state */}
+                  {linkCopied ? "Copied ✓" : "Copy Link"}
                 </button>
               </div>
             </div>
-
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
