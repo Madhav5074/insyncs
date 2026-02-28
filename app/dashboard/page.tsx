@@ -5,12 +5,11 @@ import { collection, query, where, onSnapshot, deleteDoc, doc } from "firebase/f
 import { db, auth } from "../lib/firebase";
 import { useRouter } from "next/navigation";
 
-// ✨ 1. SWIPE-TO-DELETE & INSTANT-CLICK CARD COMPONENT
 function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any) {
   const [startX, setStartX] = useState(0);
   const [offsetX, setOffsetX] = useState(0);
   const [isSwiped, setIsSwiped] = useState(false);
-  const router = useRouter(); // NEW: Needed to route to partner page
+  const router = useRouter();
 
   const handleTouchStart = (e: React.TouchEvent) => setStartX(e.touches[0].clientX);
 
@@ -34,7 +33,6 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
 
   return (
     <div className="relative rounded-2xl bg-red-500 overflow-hidden shadow-sm">
-      {/* Background Delete Button */}
       <div className="absolute right-0 top-0 bottom-0 w-[80px] flex items-center justify-center">
         <button
           onClick={(e) => {
@@ -48,7 +46,6 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
         </button>
       </div>
 
-      {/* Foreground Interactive Card */}
       <div
         onClick={() => {
           if (isSwiped) {
@@ -61,7 +58,7 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className={`relative z-10 flex items-center justify-between p-5 rounded-2xl border transition-all duration-200 ${
+        className={`relative z-10 flex items-center justify-between p-5 rounded-2xl border transition-all duration-200 cursor-pointer ${
           isNavigating
             ? "border-zinc-300 bg-zinc-100 scale-[0.98] dark:border-zinc-700 dark:bg-zinc-900"
             : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 active:scale-[0.98]"
@@ -85,7 +82,6 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
               )}
             </h2>
             
-            {/* ✨ NEW: Clickable Partner Link ✨ */}
             <div className="mt-0.5">
               {isNavigating ? (
                 <p className="text-sm text-zinc-500">Loading circle...</p>
@@ -94,7 +90,7 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
               ) : (
                 <button
                   onClick={(e) => {
-                    e.stopPropagation(); // Stops the main card from clicking!
+                    e.stopPropagation();
                     router.push(`/circle/${circle.id}/partner`);
                   }}
                   className="text-xs font-bold text-zinc-400 hover:text-black dark:hover:text-white uppercase tracking-wider flex items-center gap-1 transition-colors active:scale-95 py-1"
@@ -106,7 +102,6 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
           </div>
         </div>
 
-        {/* Dynamic loading spinner vs arrow */}
         {isNavigating ? (
           <div className="w-5 h-5 border-2 border-zinc-200 border-t-black rounded-full animate-spin dark:border-zinc-700 dark:border-t-white pointer-events-none"></div>
         ) : (
@@ -117,75 +112,14 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
   );
 }
 
-
-      {/* Foreground Interactive Card */}
-      <div
-        onClick={() => {
-          if (isSwiped) {
-            setIsSwiped(false);
-            setOffsetX(0);
-            return;
-          }
-          onNavigate(circle.id);
-        }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        className={`relative z-10 flex items-center justify-between p-5 rounded-2xl border transition-all duration-200 ${
-          isNavigating
-            ? "border-zinc-300 bg-zinc-100 scale-[0.98] opacity-80 dark:border-zinc-700 dark:bg-zinc-900"
-            : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 active:scale-[0.98]"
-        }`}
-        style={{
-          transform: `translateX(${offsetX}px)`,
-          transition: startX === 0 ? "transform 0.2s ease-out" : "none",
-        }}
-      >
-        <div className="flex items-center gap-4 pointer-events-none">
-          <div className="w-12 h-12 flex items-center justify-center rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-lg">
-            {circle.name ? circle.name.charAt(0).toUpperCase() : "#"}
-          </div>
-          <div>
-            <h2 className="font-semibold text-lg flex items-center gap-2">
-              {circle.name}
-              {circle.members?.length < 2 && (
-                <span className="text-[10px] bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
-                  Waiting
-                </span>
-              )}
-            </h2>
-            <p className="text-sm text-zinc-500">
-              {isNavigating
-                ? "Loading circle..."
-                : circle.members?.length < 2
-                ? "Needs a partner"
-                : "Tap to view"}
-            </p>
-          </div>
-        </div>
-
-        {/* Dynamic loading spinner vs arrow */}
-        {isNavigating ? (
-          <div className="w-5 h-5 border-2 border-zinc-200 border-t-black rounded-full animate-spin dark:border-zinc-700 dark:border-t-white"></div>
-        ) : (
-          <span className="text-zinc-400 pointer-events-none">➔</span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ✨ 2. MAIN DASHBOARD PAGE
 export default function DashboardPage() {
   const [circles, setCircles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [navigatingTo, setNavigatingTo] = useState<string | null>(null);
   const router = useRouter();
 
-  // Reset navigation state if returning to this page
   useEffect(() => setNavigatingTo(null), []);
 
-  // Live Firebase connection
   useEffect(() => {
     let unsubscribeSnapshot: () => void;
 
@@ -217,13 +151,9 @@ export default function DashboardPage() {
     };
   }, [router]);
 
-  // Handle Deletion
   async function handleDeleteCircle(circleId: string) {
     if (!window.confirm("Are you sure you want to permanently delete this circle?")) return;
-    
-    // Optimistic UI update for instant feel
     setCircles((prev) => prev.filter((c) => c.id !== circleId));
-    
     try {
       await deleteDoc(doc(db, "circles", circleId));
     } catch (error) {
@@ -236,7 +166,6 @@ export default function DashboardPage() {
     <div className="min-h-screen p-6 pb-32 bg-zinc-50 dark:bg-black text-black dark:text-white selection:bg-zinc-300 dark:selection:bg-zinc-700">
       <div className="max-w-md mx-auto space-y-8 animate-[fadeIn_0.5s_ease-out]">
         
-        {/* Header Section */}
         <div className="flex items-center justify-between pt-4">
           <h1 className="text-3xl font-bold tracking-tight">My Circles</h1>
           <button
@@ -248,7 +177,6 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Content Section */}
         <div className="space-y-4">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-[50vh] space-y-6 animate-[fadeIn_0.3s_ease-out]">
@@ -284,7 +212,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Floating Action Button */}
       {!isLoading && (
         <div className="fixed bottom-8 left-0 right-0 px-6 flex justify-center z-50 pointer-events-none animate-[fadeIn_0.5s_ease-out_0.2s_both]">
           <div className="w-full max-w-md pointer-events-auto">
