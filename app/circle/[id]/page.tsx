@@ -19,7 +19,6 @@ export default function CirclePage() {
   
   const [members, setMembers] = useState<any[]>([]);
   
-  // ✨ NEW: GPS State
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
 
@@ -31,9 +30,8 @@ export default function CirclePage() {
     return d.toISOString().split("T")[0];
   }
 
-  // Haversine formula to calculate distance in meters between two coordinates
   function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
-    const R = 6371e3; // Earth's radius in meters
+    const R = 6371e3; 
     const rad = Math.PI / 180;
     const dLat = (lat2 - lat1) * rad;
     const dLon = (lon2 - lon1) * rad;
@@ -43,7 +41,7 @@ export default function CirclePage() {
               Math.sin(dLon / 2) * Math.sin(dLon / 2);
     
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // Returns distance in meters
+    return R * c; 
   }
 
   useEffect(() => {
@@ -77,8 +75,41 @@ export default function CirclePage() {
     return () => unsubscribeAuth();
   }, [id, todayKey]);
 
-  // ✨ NEW: Handes both Locking Location AND Verifying Check-ins
-  async function handleAction() {
+  // ✨ NEW: Dedicated function JUST for locking the gym location
+  async function lockLocation() {
+    setLocationError("");
+    setIsLocating(true);
+
+    if (!navigator.geolocation) {
+      setLocationError("Your device does not support location tracking.");
+      setIsLocating(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        const user = auth.currentUser;
+        if (!user) return;
+
+        const memberRef = doc(db, "circles", id, "members", user.uid);
+        
+        await setDoc(memberRef, {
+          lockedLocation: { lat: latitude, lng: longitude }
+        }, { merge: true });
+        
+        setIsLocating(false);
+      },
+      (error) => {
+        setLocationError("Failed to get location. Please allow GPS permissions.");
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  // ✨ NEW: Dedicated function JUST for daily check-ins
+  async function verifyCheckIn() {
     setLocationError("");
     setIsLocating(true);
 
@@ -100,16 +131,12 @@ export default function CirclePage() {
         if (!memberSnap.exists()) return;
         const data = memberSnap.data();
 
-        // SCENARIO 1: Day 1 - Lock the Gym Location
         if (!data.lockedLocation) {
-          await setDoc(memberRef, {
-            lockedLocation: { lat: latitude, lng: longitude }
-          }, { merge: true });
+          setLocationError("Please lock your Gym Location first!");
           setIsLocating(false);
           return;
         }
 
-        // SCENARIO 2: Day 2+ - Verify they are within 150 meters
         const dist = calculateDistance(latitude, longitude, data.lockedLocation.lat, data.lockedLocation.lng);
         
         if (dist > 150) {
@@ -118,7 +145,6 @@ export default function CirclePage() {
           return;
         }
 
-        // Verification Passed: Proceed with Check-in
         let newStreak = 1, newCycleDay = 1, newCompletedCycles = data.completedCycles || 0;
 
         if (data.lastCheckin === getYesterday()) {
@@ -142,7 +168,7 @@ export default function CirclePage() {
         setIsLocating(false);
       },
       (error) => {
-        setLocationError("Failed to get location. Please allow GPS permissions in your browser/phone settings.");
+        setLocationError("Failed to verify location. Please allow GPS permissions.");
         setIsLocating(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -251,25 +277,42 @@ export default function CirclePage() {
                  </button>
               </div>
 
-              {/* ✨ NEW: GPS Error Message UI */}
+              {/* ✨ NEW: Dedicated Location Setting UI */}
+              <div className="w-full p-4 bg-zinc-100 dark:bg-zinc-900 rounded-2xl flex items-center justify-between border border-transparent dark:border-zinc-800">
+                <div className="flex flex-col">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Target Gym</span>
+                  <span className="text-sm font-bold text-black dark:text-white">
+                    {hasLockedLocation ? "📍 Coordinates Locked" : "⚠ Action Required"}
+                  </span>
+                </div>
+                <button
+                  onClick={lockLocation}
+                  disabled={isLocating}
+                  className="px-4 py-2 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm active:scale-95 transition-all disabled:opacity-50"
+                >
+                  {hasLockedLocation ? "Update" : "Set Location"}
+                </button>
+              </div>
+
               {locationError && (
                 <div className="p-3 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-xl text-xs font-medium text-center">
                   {locationError}
                 </div>
               )}
               
+              {/* ✨ MAIN CHECK-IN BUTTON */}
               <button
-                onClick={handleAction}
-                disabled={checkedInToday || isLocating}
+                onClick={verifyCheckIn}
+                disabled={!hasLockedLocation || checkedInToday || isLocating}
                 className={`w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-all duration-200 active:scale-95 ${
-                  checkedInToday 
+                  !hasLockedLocation || checkedInToday 
                     ? "bg-zinc-200 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-500 cursor-not-allowed" 
                     : "bg-black text-white dark:bg-white dark:text-black shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1"
                 }`}
               >
                 {isLocating ? "Verifying GPS..." : 
                  checkedInToday ? "✓ Checked in Today" : 
-                 !hasLockedLocation ? "📍 Lock Gym Location" : 
+                 !hasLockedLocation ? "Lock Gym to Start" : 
                  "Verify & Check In"}
               </button>
             </div>
@@ -302,7 +345,6 @@ export default function CirclePage() {
                               <p className="font-semibold text-lg leading-none">
                                  {displayName} {isMe && <span className="text-xs font-normal text-zinc-400 ml-1">(You)</span>}
                               </p>
-                              {/* ✨ NEW: Shows if they have locked their location yet */}
                               <p className="text-[10px] font-bold mt-1 uppercase tracking-wider flex items-center gap-1">
                                 {hasLocked ? <span className="text-green-600 dark:text-green-400">✓ Location Locked</span> : <span className="text-orange-500">⚠ Setup Pending</span>}
                               </p>
