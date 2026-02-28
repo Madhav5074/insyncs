@@ -13,7 +13,8 @@ export default function CirclePage() {
   const [circle, setCircle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [checkedInToday, setCheckedInToday] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const [members, setMembers] = useState<any[]>([]);
 
   const todayKey = new Date().toISOString().split("T")[0];
@@ -90,9 +91,9 @@ export default function CirclePage() {
   }
 
   function copyInviteLink() {
-    navigator.clipboard.writeText(`${window.location.origin}/join/${id}`);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  navigator.clipboard.writeText(`${window.location.origin}/join/${id}`);
+  setLinkCopied(true); // ✨ Uses link-specific state
+  setTimeout(() => setLinkCopied(false), 2000);
   }
 
   if (loading || !circle) {
@@ -144,7 +145,7 @@ export default function CirclePage() {
             </div>
 
             <div className="w-full space-y-3">
-              {/* ✨ NEW: Secret Code Block */}
+              {/* ✨ Secret Code Block */}
               <div className="w-full p-4 bg-zinc-100 dark:bg-zinc-900 rounded-2xl flex items-center justify-between shadow-inner">
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Join Code</span>
@@ -153,12 +154,14 @@ export default function CirclePage() {
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(id);
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
+                    // ✨ FIXED: Sets code-specific state
+                    setCodeCopied(true);
+                    setTimeout(() => setCodeCopied(false), 2000);
                   }}
                   className="px-4 py-2 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm active:scale-95 transition-all"
                 >
-                  {copied ? "Copied ✓" : "Copy Code"}
+                  {/* ✨ FIXED: Looks at code-specific state */}
+                  {codeCopied ? "Copied ✓" : "Copy Code"}
                 </button>
               </div>
 
@@ -171,11 +174,12 @@ export default function CirclePage() {
                   onClick={copyInviteLink}
                   className="px-4 py-2 bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 rounded-xl text-xs font-bold uppercase tracking-wider shadow-sm active:scale-95 transition-all"
                 >
-                  {copied ? "Copied ✓" : "Copy Link"}
+                  {/* ✨ FIXED: Looks at link-specific state */}
+                  {linkCopied ? "Copied ✓" : "Copy Link"}
                 </button>
               </div>
             </div>
-          </div>
+
 
         ) : (
 
