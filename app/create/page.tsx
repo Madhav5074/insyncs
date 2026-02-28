@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-// ✨ FIXED: Added setDoc and doc to the imports!
 import { addDoc, collection, serverTimestamp, doc, setDoc, onSnapshot } from "firebase/firestore";
 import { db, auth } from "../lib/firebase";
 
@@ -57,16 +56,15 @@ export default function CreateCirclePage() {
         createdAt: serverTimestamp(),
       });
 
-      // 2. Initialize your own personal stats document inside the circle!
+      // 2. Initialize your own personal stats document
       await setDoc(doc(db, "circles", docRef.id, "members", user.uid), {
         email: user.email,
-        name: user.displayName, // ✨ NEW: Pulls your real name from your profile!
+        name: user.displayName,
         streak: 0,
         cycleDay: 0,
         completedCycles: 0,
         lastCheckin: ""
       });
-
 
       setCircleId(docRef.id);
       setStep(2);
@@ -102,7 +100,68 @@ export default function CreateCirclePage() {
           </h1>
         </div>
 
-           ) : (
+        {step === 1 ? (
+          <div className="space-y-8 mt-8 animate-[fadeIn_0.3s_ease-out]">
+            
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-zinc-500 uppercase tracking-wider ml-1">Circle Name</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Morning Warriors"
+                className="w-full rounded-2xl border border-zinc-200 dark:border-zinc-800 p-4 bg-white dark:bg-zinc-950 text-lg transition-all focus:ring-2 focus:ring-black dark:focus:ring-white outline-none"
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-zinc-500 uppercase tracking-wider ml-1">Primary Habit</label>
+              <div className="flex flex-wrap gap-2">
+                {HABIT_OPTIONS.map((h) => (
+                  <button
+                    key={h}
+                    onClick={() => setHabit(h)}
+                    className={`px-4 py-2.5 rounded-full text-sm font-medium transition-all active:scale-95 ${
+                      habit === h 
+                        ? "bg-black text-white dark:bg-white dark:text-black shadow-md" 
+                        : "bg-white text-black border border-zinc-200 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white hover:border-zinc-400"
+                    }`}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-zinc-500 uppercase tracking-wider ml-1">Duration (Days)</label>
+              <div className="flex gap-2">
+                {DURATION_OPTIONS.map((d) => (
+                  <button
+                    key={d}
+                    onClick={() => setDuration(d)}
+                    className={`flex-1 py-3 rounded-2xl text-sm font-medium transition-all active:scale-95 ${
+                      duration === d 
+                        ? "bg-black text-white dark:bg-white dark:text-black shadow-md" 
+                        : "bg-white text-black border border-zinc-200 dark:bg-zinc-950 dark:border-zinc-800 dark:text-white hover:border-zinc-400"
+                    }`}
+                  >
+                    {d}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="pt-6">
+              <button
+                onClick={handleCreateCircle}
+                disabled={!name.trim() || isLoading}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-black py-4 text-white font-medium shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-200 hover:bg-zinc-800 hover:-translate-y-1 hover:shadow-[0_8px_40px_rgb(0,0,0,0.2)] active:scale-95 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 dark:bg-white dark:text-black dark:shadow-[0_8px_30px_rgba(255,255,255,0.15)] dark:hover:bg-zinc-200"
+              >
+                {isLoading ? <span className="animate-pulse">Creating...</span> : "Create & Get Invite Link"}
+              </button>
+            </div>
+          </div>
+        ) : (
           <div className="flex flex-col items-center justify-center py-6 space-y-8 animate-[fadeIn_0.4s_ease-out]">
             
             <div className="relative flex items-center justify-center w-32 h-32">
@@ -121,7 +180,6 @@ export default function CreateCirclePage() {
             </div>
 
             <div className="w-full space-y-3">
-              {/* ✨ NEW: The Secret Code Block */}
               <div className="w-full p-4 bg-zinc-100 dark:bg-zinc-900 rounded-2xl flex items-center justify-between shadow-inner">
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Join Code</span>
@@ -139,7 +197,6 @@ export default function CreateCirclePage() {
                 </button>
               </div>
 
-              {/* The Original Link Block */}
               <div className="w-full p-1 bg-zinc-100 dark:bg-zinc-900 rounded-2xl flex items-center shadow-inner">
                 <div className="flex-1 px-4 py-3 text-xs font-mono truncate text-zinc-500">
                   {`${window.location.origin}/join/${circleId}`}
@@ -155,3 +212,7 @@ export default function CreateCirclePage() {
 
           </div>
         )}
+      </div>
+    </div>
+  );
+}
