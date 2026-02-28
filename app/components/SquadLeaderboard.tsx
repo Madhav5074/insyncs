@@ -62,7 +62,7 @@ export default function SquadLeaderboard({ members, circle, todayKey }: any) {
                               </p>
                               {hasLocked && !isMeMember && (
                                 <a 
-                                  // PERFECTED UNIVERSAL MAPS LINK
+                                  // FIXED: Standard Google Maps Query URL
                                   href={`https://maps.google.com/?q=${member.lockedLocation.lat},${member.lockedLocation.lng}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
