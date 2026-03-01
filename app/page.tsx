@@ -9,8 +9,15 @@ export default function Home() {
       <div className="min-h-screen flex items-center justify-center bg-black px-6 text-white">
         <div className="w-full max-w-sm space-y-12">
           
-          <div className="space-y-4 text-center">
-            <Image src="/logo.png" alt="logo" width={64} height={64} className="rounded-xl" />
+          <div className="space-y-4 flex flex-col items-center text-center">
+            {/* 🎯 flex-col and items-center ensures the Image is perfectly centered */}
+            <Image 
+              src="/logo.png" 
+              alt="logo" 
+              width={64} 
+              height={64} 
+              className="rounded-xl" 
+            />
 
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">InSyncs</h1>
