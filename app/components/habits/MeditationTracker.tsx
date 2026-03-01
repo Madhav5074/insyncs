@@ -39,6 +39,17 @@ export default function MeditationTracker({ circle, me, circleId, todayKey, memb
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   }
 
+  // ⏱️ AUTO-DISMISS TOAST NOTIFICATION
+  // Automatically clears any error message after 5 seconds
+  useEffect(() => {
+    if (focusError) {
+      const timer = setTimeout(() => {
+        setFocusError("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [focusError]);
+
   // 📡 THE "MAGIC SYNC" LISTENER
   useEffect(() => {
     if (isSynced && currentState === "waiting_in_lobby") {
@@ -48,7 +59,26 @@ export default function MeditationTracker({ circle, me, circleId, todayKey, memb
     }
   }, [isSynced, currentState, circle?.currentSyncSession, circle?.syncStartTime, todayKey]);
 
-  // 🧘‍♂️ THE FOCUS LOCK (Page Visibility API + Wake Lock)
+  // 💥 THE NUCLEAR PENALTY LISTENER (Squad Reset)
+  useEffect(() => {
+    if (isSynced && currentState === "working_out" && circle?.syncStartTime && me?.workoutStartTime) {
+      // If the global sync timer was forced forward (because someone broke focus)
+      if (circle.syncStartTime > me.workoutStartTime) {
+        const breakerName = circle.focusBrokenBy || "A squad member";
+        const myName = me?.name || me?.email?.split('@')[0];
+        
+        // Show the penalty message only to the victims
+        if (breakerName !== myName) {
+          setFocusError(`⚠ Focus broken! Timer reset because ${breakerName} exited the app.`);
+        }
+        
+        // Force local timer to match the new global reset time
+        updateDocState({ workoutStartTime: circle.syncStartTime });
+      }
+    }
+  }, [isSynced, currentState, circle?.syncStartTime, circle?.focusBrokenBy, me?.workoutStartTime]);
+
+  // 🧘‍♂️ THE FOCUS LOCK (With Trigger for Squad Reset)
   useEffect(() => {
     let interval: any;
 
@@ -62,17 +92,25 @@ export default function MeditationTracker({ circle, me, circleId, todayKey, memb
       }
     };
 
-    // 🚨 THE PENALTY RULE: If they switch apps, restart their timer!
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.hidden && currentState === "working_out") {
-        setFocusError("Focus broken! Your timer has been reset to 0:00.");
+        const now = Date.now();
+        const myName = me?.name || me?.email?.split('@')[0] || "A squad member";
+
+        if (isSynced) {
+          setFocusError("Focus broken! You left the app. Timer reset for everyone.");
+          // Drop the nuke on the global circle document
+          await setDoc(doc(db, "circles", circleId), {
+            syncStartTime: now,
+            focusBrokenBy: myName,
+            focusBrokenAt: now
+          }, { merge: true });
+        } else {
+          setFocusError("Focus broken! Your timer has been reset to 0:00.");
+        }
         
-        // INSTANT PENALTY: We don't kick them out. We restart their personal 
-        // timer from RIGHT NOW. Person B's timer is unaffected.
-        updateDocState({ 
-          todayState: "working_out", 
-          workoutStartTime: Date.now() 
-        });
+        // INSTANT PENALTY: Restart local timer
+        updateDocState({ todayState: "working_out", workoutStartTime: now });
       }
     };
 
@@ -90,7 +128,7 @@ export default function MeditationTracker({ circle, me, circleId, todayKey, memb
         wakeLockRef.current = null;
       }
     };
-  }, [currentState, me?.workoutStartTime]);
+  }, [currentState, me?.workoutStartTime, isSynced, circleId, me?.name, me?.email]);
 
   async function updateDocState(data: any) {
     const user = auth.currentUser;
@@ -129,7 +167,7 @@ export default function MeditationTracker({ circle, me, circleId, todayKey, memb
 
     const durationMinutes = Math.round((Date.now() - me.workoutStartTime) / 60000);
     
-    // The Anti-Cheat: If they fail, get reset to 0, and try to hit "Finish" instantly, this blocks them.
+    // The Anti-Cheat: If they fail, get reset to 0, and try to hit "Finish" instantly
     if (durationMinutes < 1) {
       setFocusError("Meditation too short to log. Keep focusing.");
       return;
@@ -165,10 +203,12 @@ export default function MeditationTracker({ circle, me, circleId, todayKey, memb
   }
 
   return (
-    <div className="w-full space-y-4">
+    <div className="w-full space-y-4 relative">
+      
+      {/* 🔔 THE FLOATING IN-APP NOTIFICATION */}
       {focusError && (
-        <div className="p-4 bg-red-100 border border-red-300 text-red-700 dark:bg-red-900/30 dark:border-red-900 dark:text-red-400 rounded-2xl text-sm font-bold text-center animate-[shake_0.5s_ease-in-out]">
-          ⚠ {focusError}
+        <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-[100] w-[90%] max-w-[350px] p-4 bg-red-100 border-2 border-red-300 text-red-700 dark:bg-red-950 dark:border-red-900 dark:text-red-400 rounded-2xl text-sm font-bold text-center shadow-[0_10px_40px_rgba(239,68,68,0.3)] animate-[shake_0.5s_ease-in-out]">
+          {focusError}
         </div>
       )}
 
