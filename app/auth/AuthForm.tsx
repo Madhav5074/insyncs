@@ -90,7 +90,7 @@ export default function AuthForm() {
         
         {/* 🎯 Logo: Animation removed */}
         <div className="flex justify-center">
-          <Image src="/logo.png" alt="logo" width={64} height={64} className="rounded-xl invert" />
+          <Image src="/logo.png" alt="logo" width={64} height={64} className="rounded-xl" />
         </div>
 
         <div className="text-center space-y-1">
