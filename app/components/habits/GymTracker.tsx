@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase"; 
 
 export default function GymTracker({ circle, me, circleId, todayKey, members }: any) {
@@ -142,8 +142,11 @@ export default function GymTracker({ circle, me, circleId, todayKey, members }: 
     updateDocState({ todayState: 'working_out', workoutStartTime: startTime, todayDate: todayKey });
   }
 
-  async function endWorkout() {
+    async function endWorkout() {
     if (!me?.workoutStartTime) return;
+    const user = auth.currentUser;
+    if (!user) return; // We need the user to save to history
+
     const durationMinutes = Math.round((Date.now() - me.workoutStartTime) / 60000);
     let newStreak = (me.lastCheckin === getYesterday() ? (me.streak || 0) + 1 : 1);
     let newCycleDay = (me.cycleDay || 0) + 1;
@@ -154,7 +157,8 @@ export default function GymTracker({ circle, me, circleId, todayKey, members }: 
       newCycleDay = 0; 
     }
 
-    updateDocState({
+    // 1. Update the Daily Snapshot
+    await updateDocState({
       todayState: 'completed',
       todayDuration: durationMinutes,
       streak: newStreak,
@@ -162,6 +166,15 @@ export default function GymTracker({ circle, me, circleId, todayKey, members }: 
       todayDate: todayKey,   
       cycleDay: newCycleDay,
       completedCycles: newCompletedCycles,
+    });
+
+    // 2. 👈 NEW: THE HISTORY LEDGER
+    // Print the permanent receipt for the Gym workout
+    await addDoc(collection(db, "circles", circleId, "members", user.uid, "history"), {
+      date: todayKey,
+      durationMinutes: durationMinutes,
+      habit: "Gym", // Tag it so the feed knows what it is
+      createdAt: serverTimestamp()
     });
   }
 
