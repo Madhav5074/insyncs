@@ -1,6 +1,7 @@
 "use client";
 
 import GymTracker from "./GymTracker";
+import RunningTracker from "./RunningTracker"; // 👈 1. We import the new engine here
 
 export default function HabitRouter({ 
   circle, 
@@ -9,15 +10,19 @@ export default function HabitRouter({
   todayKey, 
   checkedInToday, 
   standardCheckIn,
-  members // 👈 1. Receive it here
+  members 
 }: any) {
   
+  // THE SWITCHBOARD
   switch (circle.habit) {
     case "Gym":
-      // 👈 2. Pass it to the GymTracker
       return <GymTracker circle={circle} me={me} circleId={circleId} todayKey={todayKey} members={members} />;
     
     case "Running":
+      // 👈 2. We route Running circles to the new engine
+      return <RunningTracker circle={circle} me={me} circleId={circleId} todayKey={todayKey} members={members} />;
+      
+    // Meditation and Reading still fall back to the generic button (for now!)
     case "Meditation":
     case "Reading":
     default:
