@@ -12,7 +12,6 @@ export default function Home() {
           <div className="space-y-4 text-center">
             <Image src="/logo.png" alt="logo" width={64} height={64} className="rounded-xl" />
 
-            />
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">InSyncs</h1>
               <p className="mt-2 text-sm text-zinc-500">No Bullshit, Pure Consistency.</p>
