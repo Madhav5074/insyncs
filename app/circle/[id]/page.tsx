@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { doc, onSnapshot, collection, setDoc } from "firebase/firestore";
-import { db, auth } from "../../lib/firebase"; 
+import { db } from "../../../lib/firebase"; 
 
 // 🎯 The "Holy Trinity" of our clean architecture
 import HabitRouter from "../../components/habits/HabitRouter";
