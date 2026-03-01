@@ -16,6 +16,7 @@ export default function CreateCirclePage() {
   const [name, setName] = useState("");
   const [habit, setHabit] = useState("Gym");
   const [duration, setDuration] = useState(21);
+  const [syncTimings, setSyncTimings] = useState(false); // 👈 NEW: The Sync Toggle State
   
   const [circleId, setCircleId] = useState("");
   const [codeCopied, setCodeCopied] = useState(false);
@@ -47,10 +48,12 @@ export default function CreateCirclePage() {
         return;
       }
 
+      // 👈 NEW: Pushing the sync rule to Firebase
       const docRef = await addDoc(collection(db, "circles"), {
         name,
         habit,
         durationDays: duration,
+        syncTimings, // Saves true or false directly to the database
         members: [user.uid], 
         createdAt: serverTimestamp(),
       });
@@ -149,7 +152,33 @@ export default function CreateCirclePage() {
               </div>
             </div>
 
-            <div className="pt-6">
+            {/* 🎯 THE NEW SYNC UI TOGGLE */}
+            <div className="space-y-3 pt-2">
+              <div 
+                onClick={() => setSyncTimings(!syncTimings)}
+                className={`flex items-center justify-between p-5 rounded-2xl border transition-all cursor-pointer active:scale-[0.98] ${
+                  syncTimings 
+                    ? "border-black bg-black text-white dark:border-white dark:bg-white dark:text-black shadow-md" 
+                    : "border-zinc-200 bg-white text-black dark:border-zinc-800 dark:bg-zinc-950 dark:text-white hover:border-zinc-300 dark:hover:border-zinc-700"
+                }`}
+              >
+                <div className="flex flex-col">
+                  <span className="text-sm font-bold uppercase tracking-wider">Synchronized Sessions</span>
+                  <span className={`text-xs mt-1 max-w-[220px] ${syncTimings ? "text-zinc-300 dark:text-zinc-600" : "text-zinc-500"}`}>
+                    Require squad to ready-up and start at the exact same time.
+                  </span>
+                </div>
+                
+                {/* Visual Toggle */}
+                <div className={`relative w-12 h-6 rounded-full transition-colors duration-300 ${syncTimings ? "bg-white dark:bg-black" : "bg-zinc-200 dark:bg-zinc-800"}`}>
+                  <div className={`absolute top-1 left-1 w-4 h-4 rounded-full transition-transform duration-300 ${
+                    syncTimings ? "translate-x-6 bg-black dark:bg-white" : "translate-x-0 bg-white dark:bg-zinc-400 shadow-sm"
+                  }`}></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4">
               <button
                 onClick={handleCreateCircle}
                 disabled={!name.trim() || isLoading}
