@@ -10,12 +10,8 @@ export default function Home() {
         <div className="w-full max-w-sm space-y-12">
           
           <div className="space-y-4 text-center">
-            <Image 
-              src="/logo.png" 
-              alt="InSyncs logo" 
-              width={48} 
-              height={48} 
-              className="mx-auto rounded-xl grayscale invert" // Added invert to make dark logo visible on black
+            <Image src="/logo.png" alt="logo" width={64} height={64} className="rounded-xl" />
+
             />
             <div>
               <h1 className="text-2xl font-semibold tracking-tight">InSyncs</h1>
