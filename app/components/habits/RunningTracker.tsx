@@ -25,6 +25,8 @@ export default function RunningTracker({ circle, me, circleId, todayKey, members
   const watchIdRef = useRef<number | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const routePathRef = useRef<{ lat: number; lng: number }[]>([]);
+  const latestStatsRef = useRef({ distance: 0, elapsed: 0 }); // 👈 ADD THIS LINE
+
 
   const isSynced = circle?.syncTimings === true;
 
@@ -112,21 +114,32 @@ export default function RunningTracker({ circle, me, circleId, todayKey, members
     };
   }, [currentState, me?.workoutStartTime]);
 
-  // 📡 THE LIVE BROADCASTER
-  // Pushes your local stats to Firebase every 5 seconds so the squad can see them
+    // Keep the vault updated with your freshest numbers without restarting the interval
+  useEffect(() => {
+    latestStatsRef.current = { distance: distanceMeters, elapsed: elapsedSeconds };
+  }, [distanceMeters, elapsedSeconds]);
+
+  // 📡 THE LIVE BROADCASTER (Fixed)
   useEffect(() => {
     let syncInterval: any;
+    
     if (currentState === "working_out") {
       syncInterval = setInterval(() => {
-        const currentPace = distanceMeters > 0 ? (elapsedSeconds / 60) / (distanceMeters / 1000) : 0;
+        // Grab the freshest numbers from the vault
+        const dist = latestStatsRef.current.distance;
+        const elap = latestStatsRef.current.elapsed;
+        
+        const currentPace = dist > 0 ? (elap / 60) / (dist / 1000) : 0;
+        
         updateDocState({ 
-          todayDistance: distanceMeters,
+          todayDistance: dist,
           todayPace: currentPace
         });
-      }, 5000); // 5-second heartbeat
+      }, 5000); // 👈 This will now ACTUALLY fire exactly every 5 seconds
     }
+    
     return () => clearInterval(syncInterval);
-  }, [currentState, distanceMeters, elapsedSeconds]);
+  }, [currentState]); // 👈 Notice we removed elapsedSeconds from here!
 
   async function updateDocState(data: any) {
     const user = auth.currentUser;
