@@ -4,13 +4,13 @@ import { useState, useEffect } from "react";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase"; 
 
-export default function GymTracker({ circle, me, circleId, todayKey }: any) {
+export default function GymTracker({ circle, me, circleId, todayKey, members }: any) {
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState("");
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
   const hasLockedLocation = !!me?.lockedLocation;
-  const isSynced = circle?.syncTimings === true; // 👈 NEW: The Engine checks the rules
+  const isSynced = circle?.syncTimings === true;
 
   // 🕒 THE MIDNIGHT REFEREE LOGIC
   const isNewDay = me?.todayDate !== todayKey;
@@ -18,11 +18,23 @@ export default function GymTracker({ circle, me, circleId, todayKey }: any) {
   
   if (isNewDay) {
     if (currentState === 'working_out') {
-      currentState = 'working_out'; // Protect overnight sessions
+      currentState = 'working_out'; 
     } else {
-      currentState = 'none'; // Wipe dead lobbies or forgotten check-ins
+      currentState = 'none'; 
     }
   }
+
+  // 🚨 STRICT LOBBY LOGIC: Find out who is slacking
+  // We check if anyone is NOT in the lobby, NOT working out, and NOT completed.
+  const unreadyMembers = (members || []).filter((m: any) => 
+    m.uid !== me?.uid && 
+    m.todayState !== 'waiting_in_lobby' && 
+    m.todayState !== 'working_out' && 
+    m.todayState !== 'completed'
+  );
+  
+  // If the unready list is empty, the squad is assembled!
+  const isSquadReady = members && members.length > 1 && unreadyMembers.length === 0;
 
   function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371e3; 
@@ -38,8 +50,7 @@ export default function GymTracker({ circle, me, circleId, todayKey }: any) {
     return h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
   }
 
-  // 📡 THE "MAGIC SYNC" LISTENER
-  // If someone else hits "Start Squad Session", pull me into the workout automatically!
+  // 📡 THE "MAGIC SYNC" LISTENER (Auto-starts when someone else hits launch)
   useEffect(() => {
     if (isSynced && currentState === 'waiting_in_lobby') {
       if (circle?.currentSyncSession === todayKey && circle?.syncStartTime) {
@@ -113,20 +124,16 @@ export default function GymTracker({ circle, me, circleId, todayKey }: any) {
     );
   }
 
-  // 🎮 MULTIPLAYER LOBBY FUNCTIONS
   async function enterLobby() {
     updateDocState({ todayState: 'waiting_in_lobby', todayDate: todayKey });
   }
 
   async function startSquadWorkout() {
     const startTime = Date.now();
-    // 1. Ignite the Circle (This wakes up anyone waiting in the lobby)
     await setDoc(doc(db, "circles", circleId), {
       currentSyncSession: todayKey,
       syncStartTime: startTime
     }, { merge: true });
-    
-    // 2. Start my own workout
     startWorkout(startTime);
   }
 
@@ -241,21 +248,32 @@ export default function GymTracker({ circle, me, circleId, todayKey }: any) {
           </div>
         ) : currentState === 'waiting_in_lobby' ? (
           <div className="space-y-3">
-            <div className="w-full flex flex-col items-center justify-center gap-3 rounded-2xl py-6 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+            <div className="w-full flex flex-col items-center justify-center gap-3 rounded-2xl py-6 bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 transition-all">
               <div className="relative flex items-center justify-center w-12 h-12">
-                <div className="absolute inset-0 rounded-full border-4 border-blue-500/30 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]"></div>
-                <div className="relative z-10 w-4 h-4 bg-blue-500 rounded-full"></div>
+                <div className={`absolute inset-0 rounded-full border-4 ${isSquadReady ? 'border-green-500/30' : 'border-blue-500/30'} animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite]`}></div>
+                <div className={`relative z-10 w-4 h-4 ${isSquadReady ? 'bg-green-500' : 'bg-blue-500'} rounded-full transition-colors`}></div>
               </div>
-              <div className="text-center">
-                <span className="text-sm font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400 block mb-1">In Lobby</span>
-                <span className="text-xs text-zinc-500">Waiting for squad...</span>
+              <div className="text-center px-4">
+                <span className="text-sm font-bold uppercase tracking-widest text-zinc-600 dark:text-zinc-400 block mb-1">
+                  {isSquadReady ? "Squad Assembled" : "In Lobby"}
+                </span>
+                <span className="text-xs font-medium text-zinc-500">
+                  {isSquadReady 
+                    ? "Everyone is ready. Launch the session." 
+                    : `Waiting for ${unreadyMembers.length} member(s) to verify GPS...`}
+                </span>
               </div>
             </div>
             <button
               onClick={startSquadWorkout}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-black py-4 text-white text-lg font-bold shadow-md transition-all active:scale-95 hover:-translate-y-1 dark:bg-white dark:text-black"
+              disabled={!isSquadReady}
+              className={`w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-lg font-bold transition-all duration-300 active:scale-95 ${
+                isSquadReady
+                  ? "bg-green-600 text-white shadow-lg hover:bg-green-700 hover:-translate-y-1"
+                  : "bg-zinc-200 text-zinc-400 dark:bg-zinc-800 dark:text-zinc-600 cursor-not-allowed"
+              }`}
             >
-              🚀 Start Squad Session Now
+              {isSquadReady ? "🚀 Launch Squad Session" : "🔒 Start Locked"}
             </button>
           </div>
         ) : currentState === 'verified' ? (
