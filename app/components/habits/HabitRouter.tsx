@@ -1,7 +1,8 @@
 "use client";
 
 import GymTracker from "./GymTracker";
-import RunningTracker from "./RunningTracker"; // 👈 1. We import the new engine here
+import RunningTracker from "./RunningTracker";
+import MeditationTracker from "./MeditationTracker"; // 👈 1. Import the new engine
 
 export default function HabitRouter({ 
   circle, 
@@ -13,17 +14,18 @@ export default function HabitRouter({
   members 
 }: any) {
   
-  // THE SWITCHBOARD
   switch (circle.habit) {
     case "Gym":
       return <GymTracker circle={circle} me={me} circleId={circleId} todayKey={todayKey} members={members} />;
     
     case "Running":
-      // 👈 2. We route Running circles to the new engine
       return <RunningTracker circle={circle} me={me} circleId={circleId} todayKey={todayKey} members={members} />;
-      
-    // Meditation and Reading still fall back to the generic button (for now!)
+
     case "Meditation":
+      // 👈 2. Route to the Focus Lock engine
+      return <MeditationTracker circle={circle} me={me} circleId={circleId} todayKey={todayKey} members={members} />;
+      
+    // Reading still falls back to the generic button
     case "Reading":
     default:
       return (
