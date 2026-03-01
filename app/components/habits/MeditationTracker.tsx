@@ -62,12 +62,17 @@ export default function MeditationTracker({ circle, me, circleId, todayKey, memb
       }
     };
 
-    // THE BRUTAL RULE: If they switch apps, kill the session.
+    // 🚨 THE PENALTY RULE: If they switch apps, restart their timer!
     const handleVisibilityChange = () => {
       if (document.hidden && currentState === "working_out") {
-        setFocusError("Focus broken! You left the app. Session invalidated.");
-        // Instantly reset them back to the start
-        updateDocState({ todayState: "none", workoutStartTime: null });
+        setFocusError("Focus broken! Your timer has been reset to 0:00.");
+        
+        // INSTANT PENALTY: We don't kick them out. We restart their personal 
+        // timer from RIGHT NOW. Person B's timer is unaffected.
+        updateDocState({ 
+          todayState: "working_out", 
+          workoutStartTime: Date.now() 
+        });
       }
     };
 
@@ -124,7 +129,7 @@ export default function MeditationTracker({ circle, me, circleId, todayKey, memb
 
     const durationMinutes = Math.round((Date.now() - me.workoutStartTime) / 60000);
     
-    // Optional: Prevent them from checking out if they did less than 1 minute
+    // The Anti-Cheat: If they fail, get reset to 0, and try to hit "Finish" instantly, this blocks them.
     if (durationMinutes < 1) {
       setFocusError("Meditation too short to log. Keep focusing.");
       return;
