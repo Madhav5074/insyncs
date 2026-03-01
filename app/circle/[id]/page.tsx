@@ -137,14 +137,15 @@ export default function CirclePage() {
 
               {/* 3. The Switchboard (Isolated) */}
               <HabitRouter 
-                circle={circle} 
-                me={me} 
-                circleId={id} 
-                todayKey={todayKey} 
-                checkedInToday={checkedInToday} 
-                standardCheckIn={standardCheckIn} 
+               circle={circle} 
+               me={me} 
+               circleId={id} 
+               todayKey={todayKey} 
+               checkedInToday={checkedInToday} 
+               standardCheckIn={standardCheckIn}
+               members={members} // 👈 JUST ADD THIS ONE LINE
               />
-            </div>
+
 
             {/* 4. The Leaderboard (Isolated) */}
             <SquadLeaderboard members={members} circle={circle} todayKey={todayKey} />
