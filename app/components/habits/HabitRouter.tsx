@@ -1,7 +1,6 @@
 "use client";
 
 import GymTracker from "./GymTracker";
-// We will import RunningTracker, MeditationTracker, etc., here later!
 
 export default function HabitRouter({ 
   circle, 
@@ -9,16 +8,15 @@ export default function HabitRouter({
   circleId, 
   todayKey, 
   checkedInToday, 
-  standardCheckIn 
+  standardCheckIn,
+  members // 👈 1. Receive it here
 }: any) {
   
-  // THE SWITCHBOARD
   switch (circle.habit) {
     case "Gym":
-      return <GymTracker circle={circle} me={me} circleId={circleId} todayKey={todayKey} />;
+      // 👈 2. Pass it to the GymTracker
+      return <GymTracker circle={circle} me={me} circleId={circleId} todayKey={todayKey} members={members} />;
     
-    // For now, all other habits fall back to the generic button.
-    // Tomorrow, we just add "case 'Running': return <RunningTracker />"
     case "Running":
     case "Meditation":
     case "Reading":
