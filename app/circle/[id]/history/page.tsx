@@ -6,6 +6,13 @@ import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 
 // 🎯 Four '../' required here
 import { db } from "../../../lib/firebase"; 
+import dynamic from "next/dynamic";
+
+// 🎯 This tells Next.js: "Do not render this on the server!"
+const RouteMap = dynamic(() => import("../../../components/RouteMap"), { 
+  ssr: false,
+  loading: () => <div className="w-full h-full flex items-center justify-center text-xs text-zinc-500 uppercase font-bold tracking-widest">Loading Map...</div>
+});
 
 export default function SquadHistoryPage() {
   const params = useParams();
