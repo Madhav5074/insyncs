@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase";
 
 export default function RunningTracker({ circle, me, circleId, todayKey, members }: any) {
@@ -9,10 +9,11 @@ export default function RunningTracker({ circle, me, circleId, todayKey, members
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [distanceMeters, setDistanceMeters] = useState(0);
 
-  // Refs for tracking without causing infinite re-renders
+  // 📡 Refs for tracking without causing infinite re-renders
   const watchIdRef = useRef<number | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number } | null>(null);
   const wakeLockRef = useRef<any>(null);
+  const routePathRef = useRef<{ lat: number; lng: number }[]>([]); // 👈 NEW: The Breadcrumb Bag
 
   const isSynced = circle?.syncTimings === true;
 
@@ -28,7 +29,7 @@ export default function RunningTracker({ circle, me, circleId, todayKey, members
     }
   }
 
-  // 🚨 STRICT LOBBY LOGIC (Same as Gym)
+  // 🚨 STRICT LOBBY LOGIC
   const unreadyMembers = (members || []).filter(
     (m: any) =>
       m.uid !== me?.uid &&
@@ -38,7 +39,7 @@ export default function RunningTracker({ circle, me, circleId, todayKey, members
   );
   const isSquadReady = members && members.length > 1 && unreadyMembers.length === 0;
 
-  // 📐 THE HAVERSINE FORMULA (Calculates distance between two GPS coordinates)
+  // 📐 THE HAVERSINE FORMULA
   function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
     const R = 6371e3; // Earth radius in meters
     const rad = Math.PI / 180;
@@ -64,7 +65,7 @@ export default function RunningTracker({ circle, me, circleId, todayKey, members
     }
   }, [isSynced, currentState, circle?.currentSyncSession, circle?.syncStartTime, todayKey]);
 
-  // 🏃‍♂️ THE RUNNING ENGINE (Timer + GPS Watcher + Wake Lock)
+  // 🏃‍♂️ THE RUNNING ENGINE (Timer + GPS Watcher + Wake Lock + Route Recording)
   useEffect(() => {
     let interval: any;
 
@@ -79,26 +80,26 @@ export default function RunningTracker({ circle, me, circleId, todayKey, members
     };
 
     if (currentState === "working_out" && me?.workoutStartTime) {
-      // 1. Start the visual timer
       interval = setInterval(() => setElapsedSeconds(Math.floor((Date.now() - me.workoutStartTime) / 1000)), 1000);
-
-      // 2. Keep the screen awake
       requestWakeLock();
 
-      // 3. Start watching GPS constantly
       if (navigator.geolocation) {
         watchIdRef.current = navigator.geolocation.watchPosition(
           (pos) => {
             const { latitude, longitude } = pos.coords;
+            const currentCoord = { lat: latitude, lng: longitude };
+
             if (lastPosRef.current) {
               const dist = calculateDistance(lastPosRef.current.lat, lastPosRef.current.lng, latitude, longitude);
-              // Filter out tiny GPS bounces (less than 2 meters) to prevent phantom distance
               if (dist > 2) {
                 setDistanceMeters((prev) => prev + dist);
-                lastPosRef.current = { lat: latitude, lng: longitude };
+                lastPosRef.current = currentCoord;
+                routePathRef.current.push(currentCoord); // 👈 NEW: Drop a breadcrumb
               }
             } else {
-              lastPosRef.current = { lat: latitude, lng: longitude }; // First ping
+              // First ping
+              lastPosRef.current = currentCoord;
+              routePathRef.current.push(currentCoord); // 👈 NEW: Drop first breadcrumb
             }
           },
           (err) => setLocationError("GPS signal lost. Make sure location is allowed."),
@@ -147,13 +148,17 @@ export default function RunningTracker({ circle, me, circleId, todayKey, members
   async function startWorkout(overrideStartTime?: number) {
     setLocationError("");
     setDistanceMeters(0);
-    lastPosRef.current = null; // Reset GPS tracker
+    lastPosRef.current = null; 
+    routePathRef.current = []; // 👈 NEW: Clear the breadcrumbs for a fresh run
     const startTime = overrideStartTime || Date.now();
     updateDocState({ todayState: "working_out", workoutStartTime: startTime, todayDate: todayKey });
   }
 
   async function endWorkout() {
     if (!me?.workoutStartTime) return;
+    const user = auth.currentUser;
+    if (!user) return;
+
     const durationMinutes = Math.round((Date.now() - me.workoutStartTime) / 60000);
     const distanceKm = (distanceMeters / 1000).toFixed(2);
     
@@ -166,15 +171,26 @@ export default function RunningTracker({ circle, me, circleId, todayKey, members
       newCycleDay = 0;
     }
 
-    updateDocState({
+    // 1. Update the Daily Leaderboard state
+    await updateDocState({
       todayState: "completed",
       todayDuration: durationMinutes,
-      todayDistance: distanceKm, // Save distance to database
+      todayDistance: distanceKm, 
       streak: newStreak,
       lastCheckin: todayKey,
       todayDate: todayKey,
       cycleDay: newCycleDay,
       completedCycles: newCompletedCycles,
+    });
+
+    // 2. 👈 NEW: THE HISTORY LEDGER
+    // Save the permanent receipt of this run, including the entire map route
+    await addDoc(collection(db, "circles", circleId, "members", user.uid, "history"), {
+      date: todayKey,
+      distanceKm: distanceKm,
+      durationMinutes: durationMinutes,
+      routePath: routePathRef.current, // Saves the array of GPS coordinates
+      createdAt: serverTimestamp()
     });
   }
 
