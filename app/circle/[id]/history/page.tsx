@@ -51,7 +51,12 @@ export default function SquadHistoryPage() {
             distanceKm: data.distanceKm,
             durationMinutes: data.durationMinutes,
             routePath: data.routePath || [], 
-            createdAt: data.createdAt?.toMillis() || Date.now(), // 👈 The raw millisecond timestamp
+            // 📖 NEW: Reading specific fields
+            bookName: data.bookName,
+            pagesRead: data.pagesRead,
+            chaptersRead: data.chaptersRead,
+            takeaway: data.takeaway,
+            createdAt: data.createdAt?.toMillis() || Date.now(),
           });
         });
       }
@@ -110,7 +115,6 @@ export default function SquadHistoryPage() {
                     </div>
                     <div>
                       <p className="font-semibold text-sm leading-none">{entry.memberName}</p>
-                      {/* 🎯 PRECISE TIMESTAMP FORMATTING */}
                       <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mt-1">
                         {new Date(entry.createdAt).toLocaleString("en-US", {
                           month: "short",
@@ -128,14 +132,13 @@ export default function SquadHistoryPage() {
                 {/* 🧠 SMART STATS UI */}
                 <div className="flex flex-wrap items-center gap-6 pt-2">
                   <div className="flex flex-col">
-                    {/* 🎯 DYNAMIC LABEL BASED ON HABIT */}
                     <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">
-                      {circle?.habit === "Gym" ? "Workout Duration" : circle?.habit === "Running" ? "Run Duration" : "Duration"}
+                      {circle?.habit === "Gym" ? "Workout Duration" : circle?.habit === "Running" ? "Run Duration" : circle?.habit === "Reading" ? "Reading Duration" : "Duration"}
                     </span>
                     <span className="text-xl font-mono font-bold">{entry.durationMinutes} <span className="text-sm font-sans text-zinc-400">min</span></span>
                   </div>
 
-                  {/* ONLY show Distance and Pace if it's a Running Circle */}
+                  {/* 🏃 ONLY show Distance and Pace if it's a Running Circle */}
                   {circle?.habit === "Running" && entry.distanceKm !== undefined && (
                     <>
                       <div className="flex flex-col">
@@ -150,7 +153,36 @@ export default function SquadHistoryPage() {
                       </div>
                     </>
                   )}
+
+                  {/* 📖 ONLY show Pages and Chapters if it's a Reading Circle */}
+                  {circle?.habit === "Reading" && (
+                    <>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Pages</span>
+                        <span className="text-xl font-mono font-bold">{entry.pagesRead || 0}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Chapters</span>
+                        <span className="text-xl font-mono font-bold">{entry.chaptersRead || 0}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
+
+                {/* 📖 THE KNOWLEDGE PROOF UI */}
+                {circle?.habit === "Reading" && entry.takeaway && (
+                  <div className="mt-4 p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-200 dark:border-zinc-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-sm">📖</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">
+                        {entry.bookName || "Untitled Book"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-zinc-700 dark:text-zinc-300 italic font-serif leading-relaxed">
+                      "{entry.takeaway}"
+                    </p>
+                  </div>
+                )}
 
                {/* 🗺️ THE LIVE MAP ENGINE */}
                 {circle?.habit === "Running" && entry.routePath && entry.routePath.length > 0 && (
