@@ -24,7 +24,7 @@
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/Madhav5074/insyncs.git](https://github.com/Madhav5074/insyncs.git)
+   git clone [https://github.com/Madhavvkalra/insyncs.git](https://github.com/Madhav5074/insyncs.git)
 
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
