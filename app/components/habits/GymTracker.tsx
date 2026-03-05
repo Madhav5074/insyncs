@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { doc, setDoc, addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../../lib/firebase"; 
 
@@ -24,8 +24,44 @@ export default function GymTracker({ circle, me, circleId, todayKey, members }: 
     }
   }
 
+  // 🔒 THE ANTI-ESCAPE LOCK REFS
+  const validExitRef = useRef(false);
+  const stateRef = useRef(currentState);
+  
+  // Keep the stateRef perfectly synced with the current state for the unmount check
+  useEffect(() => {
+    stateRef.current = currentState;
+  }, [currentState]);
+
+  // ☢️ THE ESCAPE PENALTY (Triggers when component unmounts unexpectedly)
+  useEffect(() => {
+    return () => {
+      // If the component unmounts and they didn't explicitly click "Stop & Checkout"
+      if (!validExitRef.current && (stateRef.current === "working_out" || stateRef.current === "waiting_in_lobby")) {
+        console.log("🚨 ILLEGAL NAVIGATION DETECTED: Triggering Reset 🚨");
+        
+        const user = auth.currentUser;
+        if (user) {
+          // 1. Wipe their personal progress instantly
+          setDoc(doc(db, "circles", circleId, "members", user.uid), {
+            todayState: "none",
+            workoutStartTime: null,
+            todayDuration: 0
+          }, { merge: true });
+        }
+
+        // 2. THE NUCLEAR SQUAD RESET
+        if (isSynced) {
+          setDoc(doc(db, "circles", circleId), {
+            syncStartTime: null,
+            currentSyncSession: null
+          }, { merge: true });
+        }
+      }
+    };
+  }, [circleId, isSynced]);
+
   // 🚨 STRICT LOBBY LOGIC: Find out who is slacking
-  // We check if anyone is NOT in the lobby, NOT working out, and NOT completed.
   const unreadyMembers = (members || []).filter((m: any) => 
     m.uid !== me?.uid && 
     m.todayState !== 'waiting_in_lobby' && 
@@ -33,7 +69,6 @@ export default function GymTracker({ circle, me, circleId, todayKey, members }: 
     m.todayState !== 'completed'
   );
   
-  // If the unready list is empty, the squad is assembled!
   const isSquadReady = members && members.length > 1 && unreadyMembers.length === 0;
 
   function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -50,7 +85,7 @@ export default function GymTracker({ circle, me, circleId, todayKey, members }: 
     return h > 0 ? `${h}h ${m}m ${s}s` : `${m}m ${s}s`;
   }
 
-  // 📡 THE "MAGIC SYNC" LISTENER (Auto-starts when someone else hits launch)
+  // 📡 THE "MAGIC SYNC" LISTENER
   useEffect(() => {
     if (isSynced && currentState === 'waiting_in_lobby') {
       if (circle?.currentSyncSession === todayKey && circle?.syncStartTime) {
@@ -142,7 +177,9 @@ export default function GymTracker({ circle, me, circleId, todayKey, members }: 
     updateDocState({ todayState: 'working_out', workoutStartTime: startTime, todayDate: todayKey });
   }
 
-    async function endWorkout() {
+  async function endWorkout() {
+    validExitRef.current = true; // ✅ Mocks the exit as a legal completion
+
     if (!me?.workoutStartTime) return;
     const user = auth.currentUser;
     if (!user) return; // We need the user to save to history
@@ -168,8 +205,7 @@ export default function GymTracker({ circle, me, circleId, todayKey, members }: 
       completedCycles: newCompletedCycles,
     });
 
-    // 2. 👈 NEW: THE HISTORY LEDGER
-    // Print the permanent receipt for the Gym workout
+    // 2. THE HISTORY LEDGER
     await addDoc(collection(db, "circles", circleId, "members", user.uid, "history"), {
       date: todayKey,
       durationMinutes: durationMinutes,
@@ -209,7 +245,7 @@ export default function GymTracker({ circle, me, circleId, todayKey, members }: 
 
         {hasLockedLocation && (
           <a 
-            href={`https://www.google.com/maps?q=${me.lockedLocation.lat},${me.lockedLocation.lng}`}
+            href={`https://maps.google.com/?q=${me.lockedLocation.lat},${me.lockedLocation.lng}`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-[10px] font-bold uppercase tracking-wider text-blue-500 hover:text-blue-600 dark:text-blue-400 transition-colors flex items-center justify-center gap-1.5"
