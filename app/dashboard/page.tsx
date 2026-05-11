@@ -10,17 +10,25 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
   const [offsetX, setOffsetX] = useState(0);
   const [isSwiped, setIsSwiped] = useState(false);
 
-  const handleTouchStart = (e: React.TouchEvent) => setStartX(e.touches[0].clientX);
+  // 1. UNIVERSAL POINTER EVENTS (Works for Mouse, Trackpad, and Touch)
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setStartX(e.clientX);
+    // Locks the pointer to this card so dragging works even if the mouse slightly leaves the div
+    e.currentTarget.setPointerCapture(e.pointerId); 
+  };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
+  const handlePointerMove = (e: React.PointerEvent) => {
     if (startX === 0) return;
-    const diff = e.touches[0].clientX - startX;
+    const diff = e.clientX - startX;
     if (diff < 0 && !isSwiped) setOffsetX(Math.max(diff, -80));
     else if (diff > 0 && isSwiped) setOffsetX(Math.min(-80 + diff, 0));
   };
 
-  const handleTouchEnd = () => {
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (startX === 0) return;
     setStartX(0);
+    e.currentTarget.releasePointerCapture(e.pointerId);
+    
     if (offsetX < -40) {
       setIsSwiped(true);
       setOffsetX(-80);
@@ -35,6 +43,7 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
   return (
     <div className={`relative rounded-2xl bg-red-500 overflow-hidden shadow-sm transition-transform duration-200 ${isNavigating ? "scale-[0.98]" : "active:scale-[0.98]"}`}>
       
+      {/* 📱 MOBILE: THE BACKGROUND SWIPE DELETE BUTTON */}
       <div className="absolute right-0 top-0 bottom-0 w-[80px] flex items-center justify-center">
         <button
           onClick={(e) => {
@@ -48,19 +57,26 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
         </button>
       </div>
 
+      {/* THE MAIN FOREGROUND CARD */}
       <div
         onClick={() => {
+          // Prevent accidental navigation if they just clicked to close the swipe
           if (isSwiped) {
             setIsSwiped(false);
             setOffsetX(0);
             return;
           }
+          // Prevent accidental navigation if they just dragged with their mouse
+          if (offsetX !== 0) return;
+          
           onNavigate(circle.id);
         }}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        className={`relative z-10 flex items-center justify-between p-5 rounded-2xl border transition-all duration-200 cursor-pointer ${
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
+        // Added 'group' for hover effects and 'touch-pan-y' so mobile users can still scroll vertically
+        className={`relative z-10 flex items-center justify-between p-5 rounded-2xl border transition-all duration-200 cursor-pointer touch-pan-y group ${
           isNavigating
             ? "border-zinc-300 bg-zinc-100 dark:border-zinc-700 dark:bg-zinc-900"
             : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950"
@@ -70,7 +86,7 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
           transition: startX === 0 ? "transform 0.2s ease-out" : "none",
         }}
       >
-                <div className="flex items-center gap-4 pointer-events-none w-full">
+        <div className="flex items-center gap-4 pointer-events-none w-full">
           <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center rounded-full bg-black dark:bg-white text-white dark:text-black font-bold text-lg">
             {circle.name ? circle.name.charAt(0).toUpperCase() : "#"}
           </div>
@@ -80,11 +96,7 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
               <h2 className="font-semibold text-lg leading-tight line-clamp-2">
                 {circle.name}
               </h2>
-              <span className={`flex-shrink-0 mt-0.5 whitespace-nowrap text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider font-bold ${
-                memberCount >= 6 
-                  ? "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-                  : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
-              }`}>
+              <span className={`flex-shrink-0 mt-0.5 whitespace-nowrap text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider font-bold bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400`}>
                 {memberCount >= 6 ? "Full" : `${memberCount}/6 Members`}
               </span>
             </div>
@@ -99,11 +111,26 @@ function SwipeableCircleCard({ circle, isNavigating, onNavigate, onDelete }: any
           </div>
         </div>
 
+        {/* LOADING STATE / RIGHT CHEVRON */}
         {isNavigating ? (
           <div className="w-5 h-5 flex-shrink-0 border-2 border-zinc-200 border-t-black rounded-full animate-spin dark:border-zinc-700 dark:border-t-white pointer-events-none"></div>
         ) : (
-          <span className="text-zinc-400 flex-shrink-0 pointer-events-none">➔</span>
+          // Hides the chevron on desktop hover to make room for the delete button
+          <span className="text-zinc-400 flex-shrink-0 pointer-events-none transition-opacity duration-200 md:group-hover:opacity-0">➔</span>
         )}
+
+        {/* 💻 DESKTOP ONLY: HOVER DELETE BUTTON */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation(); // Prevents the click from triggering the card's onNavigate
+            onDelete(circle.id);
+          }}
+          className="hidden md:flex absolute right-4 opacity-0 group-hover:opacity-100 items-center justify-center w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-xl transition-all duration-200 shadow-md active:scale-95 z-20"
+          title="Delete Circle"
+        >
+          <span className="text-lg leading-none mb-0.5">🗑️</span>
+        </button>
+
       </div>
     </div>
   );
